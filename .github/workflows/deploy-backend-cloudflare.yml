@@ -55,23 +55,23 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           echo "检查并创建D1数据库..."
-          DATABASE_LIST=$(npx wrangler d1 list --json 2>/dev/null || echo "[]")
-          EXISTING_DB=$(echo "$DATABASE_LIST" | jq -r '.[] | select(.name=="cloudpaste-db") | .uuid')
+          DATABASE_LIST=$(npx wrangler d1 list --json 2>/dev/null || echo '[]')
+          EXISTING_DB=$(echo "$DATABASE_LIST" | jq -r --arg name "cloudpaste-db" '.[] | select(.name == $name) | .uuid' || true)
 
           if [ -n "$EXISTING_DB" ]; then
             echo "✅ 找到D1数据库: $EXISTING_DB"
             DATABASE_ID=$EXISTING_DB
           else
             CREATE_OUTPUT=$(npx wrangler d1 create cloudpaste-db 2>&1)
-          
+            
             if echo "$CREATE_OUTPUT" | grep -q "Successfully created DB"; then
               DATABASE_ID=$(echo "$CREATE_OUTPUT" | grep -oP "database_id = \"\K[^\"]+")
               if [ -z "$DATABASE_ID" ]; then
                 DATABASE_ID=$(echo "$CREATE_OUTPUT" | grep -oP "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
               fi
             else
-              LIST_OUTPUT=$(npx wrangler d1 list --json 2>/dev/null || echo "[]")
-              DATABASE_ID=$(echo "$LIST_OUTPUT" | jq -r '.[] | select(.name=="cloudpaste-db") | .uuid')
+              LIST_OUTPUT=$(npx wrangler d1 list --json 2>/dev/null || echo '[]')
+              DATABASE_ID=$(echo "$LIST_OUTPUT" | jq -r --arg name "cloudpaste-db" '.[] | select(.name == $name) | .uuid' || true)
           
               if [ -z "$DATABASE_ID" ]; then
                 echo "❌ 无法创建或找到D1数据库"
